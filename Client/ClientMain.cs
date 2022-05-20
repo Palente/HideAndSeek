@@ -17,6 +17,7 @@ namespace HideAndSeek.Client
         private Model CurrentModel;
         private Vector3 _OldPos;
         private HideGame _CurrentGame;
+        private int _cameraId = -31082002;
         public long CurrentTime
         {
             get => _endTime - TimeUtils.ToUnixTimeSeconds(); 
@@ -24,7 +25,6 @@ namespace HideAndSeek.Client
         public PlayerGameStatus PlayerRole;
         public ClientMain()
         {
-            Debug.WriteLine("Hi from HideAndSeek.Client!");
         }
         [Command("hideandseek")]
         public void HideAndSeekCommand()
@@ -93,6 +93,7 @@ namespace HideAndSeek.Client
         private void DisplayDuration()
         {
             //TODO: changez la couleur lorsqu'il reste moins d'une minute
+            //TODO: Affichez le nombre de survivant
             SetTextFont(4);
             SetTextScale(0.3f, 0.3f);
             SetTextProportional(false);
@@ -114,7 +115,13 @@ namespace HideAndSeek.Client
             string txt;
 
             if (PlayerRole == PlayerGameStatus.SEEKER)
-                txt = $"Il ne vous reste plus que : {min}:{seconds}";
+            {
+                if(min != 0)
+                    txt = $"Il ne vous reste plus que : {min}:{seconds}";
+                else
+                    txt = $"~r~Il ne vous reste plus que : {seconds} SECONDES!";
+            }
+                
             else
                 txt = $"Restez cachez pendant encore : {min}:{seconds}";
             AddTextComponentString(txt+$"{(min !=0?"minutes":"secondes")}");
@@ -160,11 +167,13 @@ namespace HideAndSeek.Client
                 SendNotification(text);
         }
         [EventHandler("hideandseek:game_started")]
-        public void GameStarted(float x, float y, float z, bool seeker)
+        public void GameStarted(float x, float y, float z, bool seeker, int playerCount = -1)
         {
+            _CurrentGame.PlayerCount = playerCount;
             LocalPlayer.Character.Position = new Vector3(x, y, z);
             _GameStarted = true;
             _startTime = TimeUtils.ToUnixTimeSeconds();
+            _CurrentGame.Started = true;
             //11 minutes de jeux: 1minutes pour se cacher
             _endTime = TimeUtils.ToUnixTimeSeconds() + 11*60;
             if (seeker)
@@ -187,6 +196,7 @@ namespace HideAndSeek.Client
                 //Change Model
                 CurrentModel = LocalPlayer.Character.Model;
                 Game.Player.ChangeModel(PedHash.FibOffice01SMM);
+                //Freeze 1minutes
             }
             else
             {
@@ -230,6 +240,26 @@ namespace HideAndSeek.Client
             LocalPlayer.Character.Position = new Vector3(x, y, z);
             PlayerRole = PlayerGameStatus.NOT_STARTED;
         }
+        [Command("camera")]
+        public void Camera()
+        {
+            //Test Command
+            if(_cameraId == -31082002)
+            {
+                _cameraId = CreateCam("DEFAULT_SCRIPTED_CAMERA", true);
+                SetCamFov(_cameraId, 120f);
+                SetCamCoord(_cameraId, LocalPlayer.Character.Position.X, LocalPlayer.Character.Position.Y, LocalPlayer.Character.Position.Z + 2);
+                SetCamActive(_cameraId, true);
+                SetCamAffectsAiming(_cameraId, true);
+                RenderScriptCams(true, false, 0, true, false);
+            }
+            else
+            {
+                RenderScriptCams(false, false, 0, true, false);
+            }
+            
+
+        }
     }
     //Client Side
     public enum PlayerGameStatus
@@ -245,5 +275,6 @@ namespace HideAndSeek.Client
         public int PlayerAlive = 0; //Player alive
 
         public bool Started = false;
+        public ulong Timestamp_Started;
     }
 }

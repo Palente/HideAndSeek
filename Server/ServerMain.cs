@@ -12,6 +12,7 @@ namespace HideAndSeek.Server
         private readonly int MaxJoueurs = 21; // 20joueur et 1 chercheur
         private Vector3 hider_pos = new Vector3(3536.195f, 3665.674f, 28.12189f);
         private Vector3 seeker_pos = new Vector3(3624.037f, 3741.623f, 28.69011f);
+        private bool _Started = false;
         public ServerMain()
         {
             var x = 3536.195f;
@@ -42,6 +43,24 @@ namespace HideAndSeek.Server
                 TriggerClientEvent("hideandseek:send_notif", $"{player.Name} à ~r~quitter~s~ le cache cache");
             }
         }
+        [EventHandler("hideandseek:quit_player")]
+        public void QuitPlayer([FromSource] Player p)
+        {
+            //Le joueur a quitté la partie!
+            Joueurs.Remove(p);
+            if (_Started && Joueurs[p] != PlayerGameStatus.SPECTATOR)
+            {
+                if (Joueurs[p] == PlayerGameStatus.SEEKER)
+                {
+                    // Le chercheur a quitté? Bah fin de la game mdr
+                    // Afficher message
+                }
+            }
+            else
+            {
+
+            }
+        }
         [EventHandler("hideandseek:ask_start")]
         public void AskStart([FromSource] Player player)
         {
@@ -51,14 +70,10 @@ namespace HideAndSeek.Server
             {
                 if (Joueurs.ContainsKey(p))
                 {
-                    //joueur existe
-                    if (Joueurs[p] == PlayerGameStatus.SEEKER)
-                    {
-                        TriggerClientEvent(p,"hideandseek:game_started", seeker_pos.X, seeker_pos.Y, seeker_pos.Z, true);
-                    }else
-                        TriggerClientEvent(p,"hideandseek:game_started", hider_pos.X, hider_pos.Y, hider_pos.Z, false);
+                        TriggerClientEvent(p,"hideandseek:game_started", hider_pos.X, hider_pos.Y, hider_pos.Z, Joueurs[p] is PlayerGameStatus.SEEKER, Joueurs.Count);
                 }
             }
+            _Started = true;
         }
         [EventHandler("hideandseek:player_eliminated")]
         public void OnPlayerEliminated([FromSource]Player victim)
@@ -78,5 +93,12 @@ namespace HideAndSeek.Server
         HIDER = 0,
         SEEKER,
         SPECTATOR
+    }
+    public enum EndGameReason
+    {
+        SEEKER_WIN,
+        HIDER_WIN,
+        SEEKER_LEFT,
+        //MAYBE ADD NO TIME LEFT
     }
 }
